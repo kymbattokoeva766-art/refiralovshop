@@ -1,98 +1,35 @@
-from flask import Flask, render_template, request, redirect, session, url_for
-from flask_sqlalchemy import SQLAlchemy
-import uuid
-import os
-import requests
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Приватный канал (TG BETA)</title>
+    <style>
+        :root { --primary: #f0f; --accent: #00f0ff; --bg: #050505; --card-bg: #111; }
+        body { background-color: var(--bg); color: #fff; font-family: 'Courier New', monospace; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .main-card { background: var(--card-bg); padding: 40px; border-radius: 20px; border: 2px solid #222; max-width: 450px; width: 90%; text-align: center; box-shadow: 0 0 40px #000; }
+        h1 { font-size: 2.5rem; text-transform: uppercase; color: #fff; text-shadow: 2px 2px 0 var(--primary); margin: 0; }
+        .price-tag { margin: 25px 0; padding: 15px; border: 1px dashed #444; border-radius: 10px; font-size: 1.5rem; font-weight: bold; }
+        .buy-btn { background: #fff; color: #000; border: none; padding: 18px; font-size: 1.2rem; font-weight: 900; border-radius: 10px; cursor: pointer; width: 100%; text-transform: uppercase; transition: 0.3s; }
+        .buy-btn:hover { background: var(--accent); transform: scale(1.02); }
+        .captcha-container { margin-bottom: 20px; display: flex; justify-content: center; }
+    </style>
+</head>
+<body>
+<div class="main-card">
+    <h1>Приватный канал</h1>
+    <div style="color: var(--accent); font-weight: bold; margin-top: 5px;">(TG BETA)</div>
+    <p style="color: #888; margin: 20px 0;">Обучение осинт/докс/ддос от @refiralov</p>
+    
+    <div class="price-tag">5 NFT Тортов</div>
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = '239kotoV-ultra-secure'
-
-# База данных
-basedir = os.path.abspath(os.path.dirname(__file__))
-db_path = os.path.join(basedir, 'shop.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
-
-class Order(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    item = db.Column(db.String(100))
-    unique_code = db.Column(db.String(50))
-    contact = db.Column(db.String(100))
-    status = db.Column(db.String(20), default='Ожидает')
-
-with app.app_context():
-    db.create_all()
-
-# КЛЮЧ CLOUDFLARE
-TURNSTILE_SECRET = "0x4AAAAAACVwgqs7hUIqLYaoAqXKj8sA0mY"
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/buy/<item_name>', methods=['POST'])
-def buy(item_name):
-    token = request.form.get('cf-turnstile-response')
-    verify = requests.post(
-        "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-        data={'secret': TURNSTILE_SECRET, 'response': token}
-    )
-    if not verify.json().get('success'):
-        return "<h1>Ошибка капчи! Попробуйте еще раз.</h1>", 403
-
-    code = str(uuid.uuid4())[:8]
-    new_order = Order(item=item_name, unique_code=code)
-    db.session.add(new_order)
-    db.session.commit()
-    return redirect(url_for('payment', code=code))
-
-@app.route('/payment/<code>', methods=['GET', 'POST'])
-def payment(code):
-    order = Order.query.filter_by(unique_code=code).first_or_404()
-    if request.method == 'POST':
-        order.contact = request.form.get('contact')
-        order.status = 'Проверка тортов 🍰'
-        db.session.commit()
-        return f'''
-        <body style="background:#050505; color:white; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; text-align:center;">
-            <div style="background:#111; padding:40px; border-radius:24px; border:1px solid #333; box-shadow:0 0 50px #00f0ff;">
-                <h1 style="color:#00f0ff;">ЗАЯВКА ПРИНЯТА!</h1>
-                <p style="color:#888;">Ожидайте подтверждения от <b>@refiralov</b></p>
-                <div style="margin:20px 0; color:#f0f; font-weight:bold; border:1px solid #444; padding:10px; border-radius:10px;">СТАТУС: {order.status}</div>
-                <a href="https://t.me/refiralov" style="display:inline-block; background:#fff; color:#000; padding:15px 30px; border-radius:12px; text-decoration:none; font-weight:bold;">СВЯЗАТЬСЯ С АДМИНУ</a>
-            </div>
-        </body>
-        '''
-    return render_template('payment.html', order=order)
-
-@app.route('/admin', methods=['GET', 'POST'])
-def admin():
-    if request.method == 'POST':
-        if request.form.get('password') == '239kotoV':
-            session['admin_logged_in'] = True
-    if not session.get('admin_logged_in'):
-        return render_template('admin.html', orders=[], logged_in=False)
-    orders = Order.query.order_by(Order.id.desc()).all()
-    return render_template('admin.html', orders=orders, logged_in=True)
-
-@app.route('/admin/update_status/<int:id>/<new_status>')
-def update_status(id, new_status):
-    if not session.get('admin_logged_in'): return redirect('/admin')
-    order = Order.query.get(id)
-    if order:
-        order.status = new_status
-        db.session.commit()
-    return redirect('/admin')
-
-@app.route('/admin/delete/<int:id>')
-def delete_order(id):
-    if not session.get('admin_logged_in'): return redirect('/admin')
-    order = Order.query.get(id)
-    if order:
-        db.session.delete(order)
-        db.session.commit()
-    return redirect('/admin')
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    <form action="/buy/Приватный канал" method="POST">
+        <div class="captcha-container">
+            <div class="cf-turnstile" data-sitekey="0x4AAAAAACVwgodTxUELFeeP" data-theme="dark"></div>
+        </div>
+        <button type="submit" class="buy-btn">Вступить в канал</button>
+    </form>
+</div>
+</body>
+</html>
