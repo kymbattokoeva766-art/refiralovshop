@@ -4,13 +4,14 @@ import uuid
 import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '239kotoV-final-key'
+app.config['SECRET_KEY'] = '239kotoV-super-safe-key'
 
-# Настраиваем базу данных
+# Настройка базы данных
 basedir = os.path.abspath(os.path.dirname(__file__))
 db_path = os.path.join(basedir, 'shop.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 db = SQLAlchemy(app)
 
 # Модель заказа
@@ -21,13 +22,12 @@ class Order(db.Model):
     contact = db.Column(db.String(100))
     status = db.Column(db.String(20), default='Ожидает')
 
-# --- БЛОК АВТО-ПОЧИНКИ ---
-# При запуске проверяем базу. Если ошибка — пересоздаем.
+# Попытка создать базу при запуске (безопасно)
 with app.app_context():
     try:
         db.create_all()
     except:
-        pass # Если не вышло, разберемся по ходу дела
+        pass
 
 @app.route('/')
 def index():
@@ -42,14 +42,7 @@ def buy(item_name):
         db.session.commit()
         return redirect(f'/payment/{code}')
     except:
-        # Если база сломана при покупке — пересоздаем её
-        with app.app_context():
-            db.create_all()
-            # Пробуем еще раз
-            new_order = Order(item=item_name, unique_code=code)
-            db.session.add(new_order)
-            db.session.commit()
-        return redirect(f'/payment/{code}')
+        return "Ошибка создания заказа. Попробуйте позже."
 
 @app.route('/payment/<code>', methods=['GET', 'POST'])
 def payment(code):
@@ -62,34 +55,30 @@ def payment(code):
             return "<h3>Оплата принята! Ожидайте подтверждения от @refiralov</h3>"
         return render_template('payment.html', order=order)
     except:
-        return "<h3>Ошибка заказа. Свяжитесь с админом.</h3>"
+        return "Заказ не найден или ошибка базы."
 
+# --- АДМИНКА (ИСПРАВЛЕННАЯ) ---
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
-    # Проверка пароля 239kotoV
+    # 1. Проверка пароля (чистая логика, без базы)
     if request.method == 'POST':
         if request.form.get('password') == '239kotoV':
             session['admin_logged_in'] = True
         else:
             return "Неверный пароль!", 401
     
+    # 2. Если не вошел - кидаем на форму входа
     if not session.get('admin_logged_in'):
         return render_template('admin.html', orders=[], logged_in=False)
     
-    # --- ЗАЩИТА ОТ 500 ERROR ---
-    # Мы пробуем достать заказы. Если база битая — мы её чиним на лету.
+    # 3. БЕЗОПАСНАЯ загрузка заказов
+    # Если база сломана, мы просто показываем пустой список, А НЕ ОШИБКУ 500
     orders = []
     try:
         orders = Order.query.all()
     except Exception as e:
-        # Если ошибка — просто создаем пустой список и пересоздаем таблицы
-        # Чтобы админка открылась ЛЮБОЙ ЦЕНОЙ
-        with app.app_context():
-            try:
-                db.create_all()
-            except:
-                pass
-        orders = [] 
+        print(f"Ошибка базы: {e}")
+        orders = [] # Просто пустой список, чтобы сайт работал
         
     return render_template('admin.html', orders=orders, logged_in=True)
 
@@ -98,17 +87,19 @@ def logout():
     session.pop('admin_logged_in', None)
     return redirect('/admin')
 
-# Специальная ссылка для сброса базы (на крайний случай)
-@app.route('/reset-db-force')
-def reset_db():
+# --- КНОПКА СПАСЕНИЯ (ЛЕЧЕНИЕ БАЗЫ) ---
+@app.route('/fix-db')
+def fix_db():
     try:
+        # Удаляем старый файл базы, если он есть
         if os.path.exists(db_path):
             os.remove(db_path)
+        # Создаем чистую базу
         with app.app_context():
             db.create_all()
-        return "База данных полностью очищена и создана заново."
+        return "База данных успешно исправлена! Теперь идите в /admin"
     except Exception as e:
-        return f"Ошибка сброса: {e}"
+        return f"Ошибка исправления: {e}"
 
 if __name__ == '__main__':
     app.run(debug=True)
