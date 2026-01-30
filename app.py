@@ -1,21 +1,24 @@
 from flask import Flask, render_template, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 import uuid
+import os
 
 app = Flask(__name__)
-# Добавили специальный конфиг для стабильности базы
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///shop.db'
+# Указываем путь к базе данных более надежно
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'shop.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+# ИСПРАВЛЕННЫЙ БЛОК БАЗЫ ДАННЫХ
 class Order(db.Model):
-    id = db.Model.Field(db.Integer, primary_key=True)
-    item = db.Model.Field(db.String(100))
-    unique_code = db.Model.Field(db.String(50))
-    contact = db.Model.Field(db.String(100))
-    status = db.Model.Field(db.String(20), default='Ожидает')
+    id = db.Column(db.Integer, primary_key=True)
+    item = db.Column(db.String(100))
+    unique_code = db.Column(db.String(50))
+    contact = db.Column(db.String(100))
+    status = db.Column(db.String(20), default='Ожидает')
 
-# ВАЖНО: Эта часть создает базу данных сама
+# Создаем базу при запуске
 with app.app_context():
     db.create_all()
 
@@ -25,10 +28,11 @@ def index():
 
 @app.route('/buy/<item_name>', methods=['POST'])
 def buy(item_name):
-    new_order = Order(item=item_name, unique_code=str(uuid.uuid4())[:8])
+    code = str(uuid.uuid4())[:8]
+    new_order = Order(item=item_name, unique_code=code)
     db.session.add(new_order)
     db.session.commit()
-    return redirect(f'/payment/{new_order.unique_code}')
+    return redirect(f'/payment/{code}')
 
 @app.route('/payment/<code>', methods=['GET', 'POST'])
 def payment(code):
@@ -51,4 +55,3 @@ def admin():
 
 if __name__ == '__main__':
     app.run(debug=True)
-    
