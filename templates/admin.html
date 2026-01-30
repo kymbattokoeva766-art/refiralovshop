@@ -1,46 +1,62 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="container text-white">
-    <h2 class="text-center mt-3">Панель Администратора</h2>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель</title>
+    <style>
+        body { font-family: monospace; background-color: #0d1117; color: #c9d1d9; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h2 { color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+        input { background: #0d1117; border: 1px solid #30363d; color: white; padding: 10px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+        button { background: #238636; color: white; border: none; padding: 10px 20px; cursor: pointer; width: 100%; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #30363d; padding: 10px; text-align: left; font-size: 14px; }
+        th { color: #8b949e; }
+        .logout { display: inline-block; margin-top: 20px; color: #f85149; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% if logged_in %}
+            <h2>Панель Администратора</h2>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Товар</th>
+                        <th>Код (для клиента)</th>
+                        <th>Контакт</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td>{{ order.id }}</td>
+                        <td>{{ order.item }}</td>
+                        <td>{{ order.unique_code }}</td>
+                        <td>{{ order.contact }}</td>
+                        <td>{{ order.status }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align:center; color: gray;">Заказов пока нет</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
 
-    {% if not logged_in %}
-    <div class="card bg-secondary p-4 mx-auto" style="max-width: 400px;">
-        <form method="POST">
-            <input type="password" name="password" class="form-control mb-3" placeholder="Пароль админа" required>
-            <button type="submit" class="btn btn-primary w-100">Войти</button>
-        </form>
+            <a href="/admin/logout" class="logout">Выйти</a>
+
+        {% else %}
+            <h2>Вход в систему</h2>
+            <form method="POST">
+                <input type="password" name="password" placeholder="Введите пароль" required>
+                <button type="submit">Войти</button>
+            </form>
+        {% endif %}
     </div>
-    {% else %}
-    <div class="mt-4">
-        <h3>Все заказы:</h3>
-        <table class="table table-dark table-striped mt-3">
-            <thead>
-                <tr>
-                    <th>Код</th>
-                    <th>Контакт</th>
-                    <th>Статус</th>
-                    <th>Действие</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for order in orders %}
-                <tr>
-                    <td>{{ order.unique_code }}</td>
-                    <td>{{ order.buyer_contact or '—' }}</td>
-                    <td>
-                        <span class="badge {% if order.status == 'paid' %}bg-success{% elif order.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
-                            {{ order.status }}
-                        </span>
-                    </td>
-                    <td>
-                        <a href="{{ url_for('admin_action', order_id=order.id, action='approve') }}" class="btn btn-sm btn-success">✅</a>
-                        <a href="{{ url_for('admin_action', order_id=order.id, action='reject') }}" class="btn btn-sm btn-danger">❌</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% endif %}
-</div>
-{% endblock %}
+</body>
+</html>
