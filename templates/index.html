@@ -2,34 +2,111 @@
 <html lang="ru">
 <head>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+ 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Приватный канал (TG BETA)</title>
     <style>
-        :root { --primary: #f0f; --accent: #00f0ff; --bg: #050505; --card-bg: #111; }
-        body { background-color: var(--bg); color: #fff; font-family: 'Courier New', monospace; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .main-card { background: var(--card-bg); padding: 40px; border-radius: 20px; border: 2px solid #222; max-width: 450px; width: 90%; text-align: center; box-shadow: 0 0 40px #000; }
-        h1 { font-size: 2.5rem; text-transform: uppercase; color: #fff; text-shadow: 2px 2px 0 var(--primary); margin: 0; }
-        .price-tag { margin: 25px 0; padding: 15px; border: 1px dashed #444; border-radius: 10px; font-size: 1.5rem; font-weight: bold; }
-        .buy-btn { background: #fff; color: #000; border: none; padding: 18px; font-size: 1.2rem; font-weight: 900; border-radius: 10px; cursor: pointer; width: 100%; text-transform: uppercase; transition: 0.3s; }
-        .buy-btn:hover { background: var(--accent); transform: scale(1.02); }
-        .captcha-container { margin-bottom: 20px; display: flex; justify-content: center; }
-    </style>
-</head>
-<body>
-<div class="main-card">
-    <h1>Приватный канал</h1>
-    <div style="color: var(--accent); font-weight: bold; margin-top: 5px;">(TG BETA)</div>
-    <p style="color: #888; margin: 20px 0;">Обучение осинт/докс/ддос от @refiralov</p>
-    
-    <div class="price-tag">5 NFT Тортов</div>
+        :root {
+            --primary: #f0f; /* Неоновый розовый */
+            --accent: #00f0ff; /* Кибер-голубой */
+            --bg: #050505;
+            --card-bg: #111;
+        }
 
-    <form action="/buy/Приватный канал" method="POST">
-        <div class="captcha-container">
-            <div class="cf-turnstile" data-sitekey="0x4AAAAAACVwgodTxUELFeeP" data-theme="dark"></div>
-        </div>
-        <button type="submit" class="buy-btn">Вступить в канал</button>
-    </form>
-</div>
-</body>
-</html>
+        body {
+            background-color: var(--bg);
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Эффект свечения на фоне */
+        body::before {
+            content: "";
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: var(--primary);
+            filter: blur(150px);
+            opacity: 0.15;
+            z-index: -1;
+        }
+
+        .main-card {
+            background: var(--card-bg);
+            padding: 50px 30px;
+            border-radius: 20px;
+            border: 2px solid #222;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 0 40px rgba(0,0,0,1);
+        }
+
+        .main-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: -2px;
+            line-height: 1;
+            color: #fff;
+            text-shadow: 2px 2px 0 var(--primary);
+        }
+
+        .sub-header {
+            display: block;
+            margin-top: 10px;
+            font-size: 1.4rem;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .author-tag {
+            background: #222;
+            padding: 5px 15px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            color: #888;
+            display: inline-block;
+            margin-top: 15px;
+        }
+
+        .description {
+            margin: 40px 0;
+            color: #aaa;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        .price-container {
+            margin-bottom: 40px;
+            padding: 20px;
+            border: 1px dashed #444;
+            border-radius: 12px;
+        }
+
+        .price-label {
+            display: block;
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .price-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
