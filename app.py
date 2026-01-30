@@ -2,10 +2,9 @@ from flask import Flask, render_template, request, redirect, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 import uuid
 import os
-import requests
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '239kotoV-ultra-secure'
+app.config['SECRET_KEY'] = '239kotoV-ultimate-safe-key'
 
 # База данных
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -24,23 +23,12 @@ class Order(db.Model):
 with app.app_context():
     db.create_all()
 
-# КЛЮЧ CLOUDFLARE
-TURNSTILE_SECRET = "0x4AAAAAACVwgqs7hUIqLYaoAqXKj8sA0mY"
-
 @app.route('/')
 def index():
     return render_template('index.html')
 
 @app.route('/buy/<item_name>', methods=['POST'])
 def buy(item_name):
-    token = request.form.get('cf-turnstile-response')
-    verify = requests.post(
-        "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-        data={'secret': TURNSTILE_SECRET, 'response': token}
-    )
-    if not verify.json().get('success'):
-        return "<h1>Ошибка капчи! Попробуйте еще раз.</h1>", 403
-
     code = str(uuid.uuid4())[:8]
     new_order = Order(item=item_name, unique_code=code)
     db.session.add(new_order)
@@ -54,15 +42,34 @@ def payment(code):
         order.contact = request.form.get('contact')
         order.status = 'Проверка тортов 🍰'
         db.session.commit()
+        
+        # КРАСИВАЯ СТРАНИЦА УСПЕХА ВМЕСТО БЕЛОГО ЭКРАНА
         return f'''
-        <body style="background:#050505; color:white; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; text-align:center;">
-            <div style="background:#111; padding:40px; border-radius:24px; border:1px solid #333; box-shadow:0 0 50px #00f0ff;">
-                <h1 style="color:#00f0ff;">ЗАЯВКА ПРИНЯТА!</h1>
-                <p style="color:#888;">Ожидайте подтверждения от <b>@refiralov</b></p>
-                <div style="margin:20px 0; color:#f0f; font-weight:bold; border:1px solid #444; padding:10px; border-radius:10px;">СТАТУС: {order.status}</div>
-                <a href="https://t.me/refiralov" style="display:inline-block; background:#fff; color:#000; padding:15px 30px; border-radius:12px; text-decoration:none; font-weight:bold;">СВЯЗАТЬСЯ С АДМИНУ</a>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{ background: #050505; color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }}
+                .card {{ background: #111; padding: 40px; border-radius: 24px; border: 1px solid #333; text-align: center; box-shadow: 0 0 50px rgba(0, 240, 255, 0.2); max-width: 400px; width: 90%; }}
+                h1 {{ color: #00f0ff; text-transform: uppercase; font-size: 1.5rem; margin-bottom: 20px; }}
+                p {{ color: #888; line-height: 1.6; }}
+                .status {{ display: inline-block; margin: 20px 0; padding: 8px 15px; background: #222; color: #f0f; border-radius: 8px; font-weight: bold; border: 1px solid #444; }}
+                .btn {{ display: block; background: #fff; color: #000; text-decoration: none; padding: 15px; border-radius: 12px; font-weight: bold; margin-top: 25px; transition: 0.3s; }}
+                .btn:hover {{ background: #00f0ff; box-shadow: 0 0 20px #00f0ff; transform: scale(1.03); }}
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <div style="font-size: 50px; margin-bottom: 10px;">⚡</div>
+                <h1>Заявка принята!</h1>
+                <p>Твой запрос отправлен. Модератор проверит оплату в течение 15-30 минут.</p>
+                <div class="status">СТАТУС: {order.status}</div>
+                <a href="https://t.me/refiralov" class="btn">НАПИСАТЬ @REFIRALOV</a>
             </div>
         </body>
+        </html>
         '''
     return render_template('payment.html', order=order)
 
@@ -92,6 +99,11 @@ def delete_order(id):
     if order:
         db.session.delete(order)
         db.session.commit()
+    return redirect('/admin')
+
+@app.route('/admin/logout')
+def logout():
+    session.pop('admin_logged_in', None)
     return redirect('/admin')
 
 if __name__ == '__main__':
