@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Cabinet</title>
+    <style>
+        body { background: #050505; color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .box { background: #111; border: 2px solid #f0f; padding: 40px; border-radius: 20px; text-align: center; width: 350px; }
+        input { width: 100%; padding: 10px; margin: 15px 0; background: #222; border: 1px solid #444; color: #fff; }
+        .status-badge { background: #f0f; padding: 5px 15px; border-radius: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>ID: <span style="color: #00f0ff;">{{ order.unique_code }}</span></h2>
+        <p>Статус: <span class="status-badge">{{ order.status }}</span></p>
+        <hr border="1" color="#333">
+        {% if order.status == 'Ожидание' %}
+        <form method="POST">
+            <p>Введи свой Telegram для связи:</p>
+            <input type="text" name="contact" placeholder="@username" required>
+            <button style="background: #fff; padding: 10px 20px; cursor: pointer; width: 100%; font-weight: bold;">ОТПРАВИТЬ НА ПРОВЕРКУ</button>
+        </form>
+        {% else %}
+        <p>Ожидайте, администратор @refiralov проверяет вашу транзакцию.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
+
