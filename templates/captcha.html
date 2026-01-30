@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Защита от ботов</title>
+    <style>
+        body { background: #050505; color: white; font-family: monospace; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: #111; padding: 40px; border-radius: 20px; border: 2px solid #f0f; text-align: center; }
+        input { background: #222; border: 1px solid #444; color: white; padding: 10px; font-size: 1.2rem; width: 80px; text-align: center; border-radius: 8px; }
+        button { background: #fff; color: #000; border: none; padding: 10px 20px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-left: 10px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Реши пример, чтобы пройти дальше:</h2>
+        <form method="POST">
+            <span style="font-size: 1.5rem;">{{ n1 }} + {{ n2 }} = </span>
+            <input type="number" name="answer" required autofocus>
+            <br><br>
+            <button type="submit">ПРОВЕРИТЬ</button>
+        </form>
+        {% if request.args.get('error') %}
+            <p style="color: #f00; margin-top: 15px;">Неверно! Попробуй еще раз.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
