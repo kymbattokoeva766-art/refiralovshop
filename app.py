@@ -1,20 +1,17 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 import uuid
 import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '239kotoV-super-safe-key'
+app.config['SECRET_KEY'] = '239kotoV-ultimate-key'
 
-# Настройка базы данных
 basedir = os.path.abspath(os.path.dirname(__file__))
 db_path = os.path.join(basedir, 'shop.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 db = SQLAlchemy(app)
 
-# Модель заказа
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     item = db.Column(db.String(100))
@@ -22,12 +19,8 @@ class Order(db.Model):
     contact = db.Column(db.String(100))
     status = db.Column(db.String(20), default='Ожидает')
 
-# Попытка создать базу при запуске (безопасно)
 with app.app_context():
-    try:
-        db.create_all()
-    except:
-        pass
+    db.create_all()
 
 @app.route('/')
 def index():
@@ -35,71 +28,57 @@ def index():
 
 @app.route('/buy/<item_name>', methods=['POST'])
 def buy(item_name):
-    try:
-        code = str(uuid.uuid4())[:8]
-        new_order = Order(item=item_name, unique_code=code)
-        db.session.add(new_order)
-        db.session.commit()
-        return redirect(f'/payment/{code}')
-    except:
-        return "Ошибка создания заказа. Попробуйте позже."
+    code = str(uuid.uuid4())[:8]
+    new_order = Order(item=item_name, unique_code=code)
+    db.session.add(new_order)
+    db.session.commit()
+    return redirect(f'/payment/{code}')
 
 @app.route('/payment/<code>', methods=['GET', 'POST'])
 def payment(code):
-    try:
-        order = Order.query.filter_by(unique_code=code).first_or_404()
-        if request.method == 'POST':
-            order.contact = request.form.get('contact')
-            order.status = 'Оплачено (проверка)'
-            db.session.commit()
-            return "<h3>Оплата принята! Ожидайте подтверждения от @refiralov</h3>"
-        return render_template('payment.html', order=order)
-    except:
-        return "Заказ не найден или ошибка базы."
+    order = Order.query.filter_by(unique_code=code).first_or_404()
+    if request.method == 'POST':
+        order.contact = request.form.get('contact')
+        order.status = 'Проверка оплаты'
+        db.session.commit()
+        return "<h3>Оплата принята! Ожидайте подтверждения от @refiralov</h3>"
+    return render_template('payment.html', order=order)
 
-# --- АДМИНКА (ИСПРАВЛЕННАЯ) ---
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
-    # 1. Проверка пароля (чистая логика, без базы)
     if request.method == 'POST':
         if request.form.get('password') == '239kotoV':
             session['admin_logged_in'] = True
-        else:
-            return "Неверный пароль!", 401
-    
-    # 2. Если не вошел - кидаем на форму входа
     if not session.get('admin_logged_in'):
         return render_template('admin.html', orders=[], logged_in=False)
     
-    # 3. БЕЗОПАСНАЯ загрузка заказов
-    # Если база сломана, мы просто показываем пустой список, А НЕ ОШИБКУ 500
-    orders = []
-    try:
-        orders = Order.query.all()
-    except Exception as e:
-        print(f"Ошибка базы: {e}")
-        orders = [] # Просто пустой список, чтобы сайт работал
-        
+    orders = Order.query.order_by(Order.id.desc()).all() # Новые сверху
     return render_template('admin.html', orders=orders, logged_in=True)
+
+# Кнопка изменения статуса
+@app.route('/admin/update_status/<int:id>/<new_status>')
+def update_status(id, new_status):
+    if not session.get('admin_logged_in'): return redirect('/admin')
+    order = Order.query.get(id)
+    if order:
+        order.status = new_status
+        db.session.commit()
+    return redirect('/admin')
+
+# Кнопка удаления заказа
+@app.route('/admin/delete/<int:id>')
+def delete_order(id):
+    if not session.get('admin_logged_in'): return redirect('/admin')
+    order = Order.query.get(id)
+    if order:
+        db.session.delete(order)
+        db.session.commit()
+    return redirect('/admin')
 
 @app.route('/admin/logout')
 def logout():
     session.pop('admin_logged_in', None)
     return redirect('/admin')
-
-# --- КНОПКА СПАСЕНИЯ (ЛЕЧЕНИЕ БАЗЫ) ---
-@app.route('/fix-db')
-def fix_db():
-    try:
-        # Удаляем старый файл базы, если он есть
-        if os.path.exists(db_path):
-            os.remove(db_path)
-        # Создаем чистую базу
-        with app.app_context():
-            db.create_all()
-        return "База данных успешно исправлена! Теперь идите в /admin"
-    except Exception as e:
-        return f"Ошибка исправления: {e}"
 
 if __name__ == '__main__':
     app.run(debug=True)
