@@ -1,28 +1,139 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="card bg-dark text-white p-4 border-info">
-    {% if not success %}
-        <h2 class="text-info">Оплата заказа</h2>
-        <p class="lead">Переведите <b>5 NFT (Тортики)</b></p>
-        <p>Куда: <span class="badge bg-primary fs-5">@refiralov</span> (ТГ БЕТА)</p>
-        
-        <div class="alert alert-warning py-2">
-            <b>Ваш код:</b> <span class="fs-4">{{ order.unique_code }}</span>
-            <br><small>Укажите его в комментарии к переводу!</small>
-        </div>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оплата доступа</title>
+    <style>
+        :root {
+            --primary: #f0f;
+            --accent: #00f0ff;
+            --bg: #050505;
+            --card-bg: #111;
+        }
 
-        <form method="POST" class="mt-3">
-            <label>Ваш юзернейм в ТГ:</label>
-            <input type="text" name="contact" class="form-control mb-3" placeholder="@username" required>
-            <button type="submit" class="btn btn-info w-100">Я ОПЛАТИЛ</button>
-        </form>
-    {% else %}
-        <div class="text-center">
-            <h2 class="text-success">Принято! ✅</h2>
-            <p>Ваш запрос отправлен админу <b>@refiralov</b>.</p>
-            <p>Ожидайте проверку кода: <b>{{ order.unique_code }}</b></p>
-            <a href="/" class="btn btn-outline-light">На главную</a>
+        body {
+            background-color: var(--bg);
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .payment-card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid #333;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        h2 {
+            color: var(--accent);
+            text-transform: uppercase;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .instruction {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .instruction b { color: #fff; font-size: 1.2rem; }
+
+        .code-box {
+            background: #fff;
+            color: #000;
+            padding: 15px;
+            font-size: 1.8rem;
+            font-weight: bold;
+            border-radius: 8px;
+            margin: 20px 0;
+            letter-spacing: 2px;
+        }
+
+        .input-group {
+            margin-top: 25px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 0.8rem;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            background: #000;
+            border: 1px solid #444;
+            color: var(--accent);
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input:focus { border-color: var(--primary); }
+
+        .confirm-btn {
+            margin-top: 25px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 18px;
+            width: 100%;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.3s;
+        }
+
+        .confirm-btn:hover {
+            filter: brightness(1.2);
+            transform: translateY(-2px);
+        }
+
+        .tg-link { color: var(--accent); text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="payment-card">
+    <h2>Оплата заказа</h2>
+    
+    <div class="instruction">
+        Переведите <b>5 NFT (Тортики)</b><br>
+        на контакт: <a href="https://t.me/refiralov" class="tg-link">@refiralov</a>
+    </div>
+
+    <label>ВАШ УНИКАЛЬНЫЙ КОД:</label>
+    <div class="code-box">{{ order.unique_code }}</div>
+    <p style="font-size: 0.8rem; color: #888;">Укажите этот код в комментарии к переводу!</p>
+
+    <form method="POST">
+        <div class="input-group">
+            <label>Ваш Username в Telegram:</label>
+            <input type="text" name="contact" placeholder="@username" required>
         </div>
-    {% endif %}
+        <button type="submit" class="confirm-btn">Я ОПЛАТИЛ</button>
+    </form>
 </div>
-{% endblock %}
+
+</body>
+</html>
