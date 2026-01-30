@@ -1,12 +1,11 @@
 from flask import Flask, render_template, request, redirect, session
 from flask_sqlalchemy import SQLAlchemy
-from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 import os
 
 app = Flask(__name__)
-# Секретный ключ для защиты сессий твоего браузера
-app.config['SECRET_KEY'] = 'kotoV-super-secret-key-999'
+# Секретный ключ для защиты входа
+app.config['SECRET_KEY'] = '239kotoV-secret-key-prod'
 
 # Настройка базы данных
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -14,10 +13,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'sh
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# Твой зашифрованный пароль (239kotoV)
-ADMIN_HASH = 'scrypt:32768:8:1$iY8U2m9YvW1GkE0h$71f654060805125950d603e87002012643a3f01968868846747b2909409893d98947f9e8011f00889c976939634e9e0466439169864276709664448749870425'
+# ТВОЙ ПАРОЛЬ
+ADMIN_PASSWORD = '239kotoV'
 
-# Модель заказа в базе
+# Модель заказа
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     item = db.Column(db.String(100))
@@ -25,7 +24,7 @@ class Order(db.Model):
     contact = db.Column(db.String(100))
     status = db.Column(db.String(20), default='Ожидает')
 
-# Автоматическое создание базы данных
+# Создание базы данных
 with app.app_context():
     db.create_all()
 
@@ -53,17 +52,12 @@ def payment(code):
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
-    # Защита от перебора пароля (5 попыток)
-    if session.get('attempts', 0) >= 5:
-        return "Доступ заблокирован: слишком много попыток.", 403
-
+    # Простая и надежная проверка пароля
     if request.method == 'POST':
-        password = request.form.get('password')
-        if check_password_hash(ADMIN_HASH, password):
+        input_pass = request.form.get('password')
+        if input_pass == ADMIN_PASSWORD:
             session['admin_logged_in'] = True
-            session['attempts'] = 0
         else:
-            session['attempts'] = session.get('attempts', 0) + 1
             return "Неверный пароль!", 401
     
     if not session.get('admin_logged_in'):
