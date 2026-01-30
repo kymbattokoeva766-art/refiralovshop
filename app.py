@@ -2,23 +2,22 @@ from flask import Flask, render_template, request, redirect, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 import uuid
 import os
-import random
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'math-captcha-239'
+app.config['SECRET_KEY'] = 'neon-admin-2026'
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-db_path = os.path.join(basedir, 'shop.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'shop.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     item = db.Column(db.String(100))
-    unique_code = db.Column(db.String(50))
+    unique_code = db.Column(db.String(50), unique=True)
     contact = db.Column(db.String(100))
-    status = db.Column(db.String(20), default='Ожидает')
+    status = db.Column(db.String(20), default='Ожидание')
+    date = db.Column(db.DateTime, default=db.func.current_timestamp())
 
 with app.app_context():
     db.create_all()
@@ -29,55 +28,58 @@ def index():
 
 @app.route('/captcha/<item_name>', methods=['GET', 'POST'])
 def captcha(item_name):
+    import random
     if request.method == 'POST':
-        user_answer = request.form.get('answer')
-        correct_answer = session.get('captcha_answer')
-        
-        if user_answer and int(user_answer) == correct_answer:
-            # Если ответ верный, создаем заказ
-            code = str(uuid.uuid4())[:8]
+        if int(request.form.get('answer')) == session.get('captcha_ans'):
+            code = str(uuid.uuid4())[:8].upper()
             new_order = Order(item=item_name, unique_code=code)
             db.session.add(new_order)
             db.session.commit()
-            return redirect(url_for('payment', code=code))
-        else:
-            return redirect(url_for('captcha', item_name=item_name, error=1))
+            return redirect(url_for('user_cabinet', code=code))
+        return redirect(url_for('captcha', item_name=item_name, error=1))
+    n1, n2 = random.randint(1, 10), random.randint(1, 10)
+    session['captcha_ans'] = n1 + n2
+    return render_template('captcha.html', n1=n1, n2=n2)
 
-    # Генерируем новый пример
-    num1 = random.randint(1, 10)
-    num2 = random.randint(1, 10)
-    session['captcha_answer'] = num1 + num2
-    return render_template('captcha.html', n1=num1, n2=num2, item=item_name)
-
-@app.route('/payment/<code>', methods=['GET', 'POST'])
-def payment(code):
+@app.route('/cabinet/<code>', methods=['GET', 'POST'])
+def user_cabinet(code):
     order = Order.query.filter_by(unique_code=code).first_or_404()
     if request.method == 'POST':
         order.contact = request.form.get('contact')
-        order.status = 'Проверка тортов 🍰'
+        order.status = 'Проверка'
         db.session.commit()
-        return f'''
-        <body style="background:#050505; color:white; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; text-align:center;">
-            <div style="background:#111; padding:40px; border-radius:24px; border:1px solid #333; box-shadow:0 0 50px #00f0ff;">
-                <h1 style="color:#00f0ff;">ЗАЯВКА ПРИНЯТА!</h1>
-                <p style="color:#888;">Ожидайте подтверждения от <b>@refiralov</b></p>
-                <div style="margin:20px 0; color:#f0f; font-weight:bold; border:1px solid #444; padding:10px; border-radius:10px;">СТАТУС: {order.status}</div>
-                <a href="https://t.me/refiralov" style="display:inline-block; background:#fff; color:#000; padding:15px 30px; border-radius:12px; text-decoration:none; font-weight:bold;">СВЯЗАТЬСЯ С АДМИНУ</a>
-            </div>
-        </body>
-        '''
-    return render_template('payment.html', order=order)
+    return render_template('cabinet.html', order=order)
 
-# Админка остается прежней
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
     if request.method == 'POST':
-        if request.form.get('password') == '239kotoV':
-            session['admin_logged_in'] = True
-    if not session.get('admin_logged_in'):
-        return render_template('admin.html', orders=[], logged_in=False)
+        if request.form.get('pass') == '239kotoV':
+            session['admin'] = True
+    if not session.get('admin'):
+        return render_template('admin_login.html')
     orders = Order.query.order_by(Order.id.desc()).all()
-    return render_template('admin.html', orders=orders, logged_in=True)
+    stats = {
+        'total': Order.query.count(),
+        'pending': Order.query.filter_by(status='Проверка').count()
+    }
+    return render_template('admin_panel.html', orders=orders, stats=stats)
+
+@app.route('/admin/status/<int:id>/<status>')
+def update_status(id, status):
+    if session.get('admin'):
+        order = Order.query.get(id)
+        order.status = status
+        db.session.commit()
+    return redirect(url_for('admin'))
+
+@app.route('/admin/delete/<int:id>')
+def delete_order(id):
+    if session.get('admin'):
+        order = Order.query.get(id)
+        db.session.delete(order)
+        db.session.commit()
+    return redirect(url_for('admin'))
 
 if __name__ == '__main__':
     app.run(debug=True)
+    
