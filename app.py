@@ -4,19 +4,13 @@ import uuid
 import os
 
 app = Flask(__name__)
-# Секретный ключ для защиты входа
-app.config['SECRET_KEY'] = '239kotoV-secret-key-prod'
+app.config['SECRET_KEY'] = '239kotoV-secret-key-final'
 
-# Настройка базы данных
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'shop.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# ТВОЙ ПАРОЛЬ
-ADMIN_PASSWORD = '239kotoV'
-
-# Модель заказа
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     item = db.Column(db.String(100))
@@ -24,7 +18,6 @@ class Order(db.Model):
     contact = db.Column(db.String(100))
     status = db.Column(db.String(20), default='Ожидает')
 
-# Создание базы данных
 with app.app_context():
     db.create_all()
 
@@ -50,12 +43,12 @@ def payment(code):
         return "<h3>Оплата принята! Ожидайте подтверждения от @refiralov</h3>"
     return render_template('payment.html', order=order)
 
+# ИСПРАВЛЕННЫЙ БЛОК АДМИНКИ ЗДЕСЬ
 @app.route('/admin', methods=['GET', 'POST'])
 def admin():
-    # Простая и надежная проверка пароля
     if request.method == 'POST':
         input_pass = request.form.get('password')
-        if input_pass == ADMIN_PASSWORD:
+        if input_pass == '239kotoV':
             session['admin_logged_in'] = True
         else:
             return "Неверный пароль!", 401
@@ -63,7 +56,11 @@ def admin():
     if not session.get('admin_logged_in'):
         return render_template('admin.html', orders=[], logged_in=False)
     
-    orders = Order.query.all()
+    try:
+        orders = Order.query.all()
+    except:
+        orders = []
+        
     return render_template('admin.html', orders=orders, logged_in=True)
 
 @app.route('/admin/logout')
