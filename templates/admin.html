@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container text-white">
+    <h2 class="text-center mt-3">Панель Администратора</h2>
+
+    {% if not logged_in %}
+    <div class="card bg-secondary p-4 mx-auto" style="max-width: 400px;">
+        <form method="POST">
+            <input type="password" name="password" class="form-control mb-3" placeholder="Пароль админа" required>
+            <button type="submit" class="btn btn-primary w-100">Войти</button>
+        </form>
+    </div>
+    {% else %}
+    <div class="mt-4">
+        <h3>Все заказы:</h3>
+        <table class="table table-dark table-striped mt-3">
+            <thead>
+                <tr>
+                    <th>Код</th>
+                    <th>Контакт</th>
+                    <th>Статус</th>
+                    <th>Действие</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.unique_code }}</td>
+                    <td>{{ order.buyer_contact or '—' }}</td>
+                    <td>
+                        <span class="badge {% if order.status == 'paid' %}bg-success{% elif order.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+                            {{ order.status }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('admin_action', order_id=order.id, action='approve') }}" class="btn btn-sm btn-success">✅</a>
+                        <a href="{{ url_for('admin_action', order_id=order.id, action='reject') }}" class="btn btn-sm btn-danger">❌</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
