@@ -1,29 +1,177 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>User Cabinet</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Личный кабинет | {{ order.unique_code }}</title>
     <style>
-        body { background: #050505; color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; }
-        .box { background: #111; border: 2px solid #f0f; padding: 40px; border-radius: 20px; text-align: center; width: 350px; }
-        input { width: 100%; padding: 10px; margin: 15px 0; background: #222; border: 1px solid #444; color: #fff; }
-        .status-badge { background: #f0f; padding: 5px 15px; border-radius: 10px; font-weight: bold; }
+        :root {
+            --bg: #050505;
+            --card-bg: #0d0d0d;
+            --neon-blue: #00f0ff;
+            --neon-pink: #f0f;
+            --text: #ffffff;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* Фоновое свечение */
+        body::before {
+            content: "";
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: var(--neon-blue);
+            filter: blur(180px);
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        .container {
+            background: var(--card-bg);
+            border: 1px solid #222;
+            padding: 40px;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        .header h2 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .order-id {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+            margin-top: 0;
+        }
+
+        .status-box {
+            margin: 25px 0;
+            padding: 15px;
+            background: #151515;
+            border-radius: 12px;
+            border-left: 4px solid var(--neon-pink);
+        }
+
+        .status-label {
+            display: block;
+            font-size: 0.8rem;
+            color: #666;
+            text-transform: uppercase;
+        }
+
+        .status-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--neon-pink);
+        }
+
+        .info-text {
+            font-size: 0.95rem;
+            color: #aaa;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 10px;
+            color: #fff;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+            transition: 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--neon-blue);
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: #fff;
+            color: #000;
+            font-weight: 900;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .action-btn:hover {
+            background: var(--neon-blue);
+            transform: translateY(-2px);
+        }
+
+        .footer-link {
+            display: block;
+            margin-top: 20px;
+            color: #555;
+            text-decoration: none;
+            font-size: 0.8rem;
+            transition: 0.3s;
+        }
+
+        .footer-link:hover {
+            color: #fff;
+        }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h2>ID: <span style="color: #00f0ff;">{{ order.unique_code }}</span></h2>
-        <p>Статус: <span class="status-badge">{{ order.status }}</span></p>
-        <hr border="1" color="#333">
-        {% if order.status == 'Ожидание' %}
-        <form method="POST">
-            <p>Введи свой Telegram для связи:</p>
-            <input type="text" name="contact" placeholder="@username" required>
-            <button style="background: #fff; padding: 10px 20px; cursor: pointer; width: 100%; font-weight: bold;">ОТПРАВИТЬ НА ПРОВЕРКУ</button>
-        </form>
-        {% else %}
-        <p>Ожидайте, администратор @refiralov проверяет вашу транзакцию.</p>
-        {% endif %}
+
+<div class="container">
+    <div class="header">
+        <h2>ID ТРАНЗАКЦИИ</h2>
+        <p class="order-id">{{ order.unique_code }}</p>
     </div>
+
+    <div class="status-box">
+        <span class="status-label">Текущий статус</span>
+        <span class="status-value">{{ order.status }}</span>
+    </div>
+
+    {% if order.status == 'Ожидание' %}
+        <p class="info-text">Для активации доступа к каналу введите ваш Telegram username. После этого администратор проверит оплату.</p>
+        <form method="POST">
+            <input type="text" name="contact" placeholder="@your_username" required>
+            <button type="submit" class="action-btn">ПОДТВЕРДИТЬ ОПЛАТУ</button>
+        </form>
+    {% elif order.status == 'Проверка' %}
+        <p class="info-text">Ваши данные переданы @refiralov. Проверка NFT-тортов обычно занимает от 5 до 30 минут. Не закрывайте эту страницу.</p>
+        <div style="color: var(--neon-blue); font-size: 0.8rem; letter-spacing: 1px;">ОЖИДАЙТЕ ПОДТВЕРЖДЕНИЯ...</div>
+    {% elif order.status == 'Принят' %}
+        <p class="info-text" style="color: #0f0;">Оплата подтверждена! Добро пожаловать в команду.</p>
+        <a href="https://t.me/+ВАША_ССЫЛКА" class="action-btn" style="display: block; text-decoration: none; line-height: 15px;">ПОЛУЧИТЬ ДОСТУП</a>
+    {% endif %}
+
+    <a href="https://t.me/refiralov" class="footer-link">Поддержка: @refiralov</a>
+</div>
+
 </body>
 </html>
-
