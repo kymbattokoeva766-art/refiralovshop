@@ -5,8 +5,9 @@ import os
 import requests
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '239kotoV-ultimate-secure'
+app.config['SECRET_KEY'] = '239kotoV-secure-key-1337'
 
+# База данных
 basedir = os.path.abspath(os.path.dirname(__file__))
 db_path = os.path.join(basedir, 'shop.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
@@ -23,7 +24,7 @@ class Order(db.Model):
 with app.app_context():
     db.create_all()
 
-# ТВОЙ SECRET KEY
+# ТВОЙ СЕКРЕТНЫЙ КЛЮЧ
 TURNSTILE_SECRET = "0x4AAAAAACVwgqs7hUIqLYaoAqXKj8sA0mY"
 
 @app.route('/')
@@ -33,12 +34,14 @@ def index():
 @app.route('/buy/<item_name>', methods=['POST'])
 def buy(item_name):
     token = request.form.get('cf-turnstile-response')
+    # Проверка капчи через Cloudflare
     verify = requests.post(
         "https://challenges.cloudflare.com/turnstile/v0/siteverify",
         data={'secret': TURNSTILE_SECRET, 'response': token}
     )
+    
     if not verify.json().get('success'):
-        return "<h1>Ошибка капчи! Роботам тут не место.</h1>", 403
+        return "<h1>Ошибка: Капча не пройдена! Вернитесь назад.</h1>", 403
 
     code = str(uuid.uuid4())[:8]
     new_order = Order(item=item_name, unique_code=code)
@@ -56,10 +59,10 @@ def payment(code):
         return f'''
         <body style="background:#050505; color:white; font-family:sans-serif; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; text-align:center;">
             <div style="background:#111; padding:40px; border-radius:24px; border:1px solid #333; box-shadow:0 0 50px #00f0ff;">
-                <h1 style="color:#00f0ff;">ЗАЯВКА ПРИНЯТА!</h1>
-                <p style="color:#888;">Ожидай подтверждения от <b>@refiralov</b></p>
-                <div style="margin:20px 0; color:#f0f; font-weight:bold;">СТАТУС: {order.status}</div>
-                <a href="https://t.me/refiralov" style="display:inline-block; background:#fff; color:#000; padding:15px 30px; border-radius:12px; text-decoration:none; font-weight:bold;">НАПИСАТЬ АДМИНУ</a>
+                <h1 style="color:#00f0ff; text-transform:uppercase;">Заявка принята!</h1>
+                <p style="color:#888;">Ожидай подтверждения от <b>@refiralov</b>. <br>Проверка NFT обычно занимает до 30 минут.</p>
+                <div style="margin:20px 0; color:#f0f; font-weight:bold; border:1px solid #444; padding:10px; border-radius:10px;">СТАТУС: {order.status}</div>
+                <a href="https://t.me/refiralov" style="display:inline-block; background:#fff; color:#000; padding:15px 30px; border-radius:12px; text-decoration:none; font-weight:bold; text-transform:uppercase;">Написать админу</a>
             </div>
         </body>
         '''
@@ -95,4 +98,3 @@ def delete_order(id):
 
 if __name__ == '__main__':
     app.run(debug=True)
-    
